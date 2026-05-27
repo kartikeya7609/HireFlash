@@ -19,32 +19,35 @@ app.use(express.json());
 // Cookie parser
 app.use(cookieParser());
 
-// Enable CORS — supports comma-separated list of allowed origins in FRONTEND_URL
-// e.g. FRONTEND_URL=https://hireflash.vercel.app,http://localhost:5173
-const allowedOrigins = [
+// CORS — raw middleware for maximum reliability
+// Hardcoded production origins + env-var override support
+const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://hireflash.vercel.app',           // ← production Vercel frontend
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
     : [])
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: Origin ${origin} is not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-// Handle preflight OPTIONS requests for all routes
-app.options('*', cors());
+  // Set CORS headers for every matching origin
+  if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Cookie');
+  }
+
+  // Respond to preflight immediately — do NOT pass to next()
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
 
 // Serve local uploads folder statically
 app.use('/uploads', express.static('uploads'));
