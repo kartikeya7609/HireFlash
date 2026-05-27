@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-// Create a pre-configured axios instance
+// In development: baseURL is '' so Vite proxy forwards /api → localhost:5000
+// In production (Vercel): VITE_API_URL must be set to the Render backend URL
+//   e.g. https://hireflash-api.onrender.com
 const api = axios.create({
-  baseURL: '', // Empty because we rely on Vite's local dev server proxy configured in vite.config.js
-  withCredentials: true, // Enables sharing cookies/credentials between client and API
+  baseURL: import.meta.env.VITE_API_URL || '',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
