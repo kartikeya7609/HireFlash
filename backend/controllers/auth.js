@@ -185,13 +185,11 @@ export const sendOtp = async (req, res, next) => {
     } catch (emailError) {
     }
 
-    // Print to backend console log for convenience/delivery verification
-
     res.status(200).json({
       success: true,
-      message: isNewUser ? 'Auto-registered and OTP sent successfully to email' : 'OTP generated and sent successfully to email',
-      isNewUser,
-      developmentOtp: otp // sent to frontend so that users can instantly test without accessing terminal logs
+      message: 'Verification code sent to your email',
+      isNewUser
+      // ⚠️ Never expose the OTP in the API response — email is the only delivery channel
     });
   } catch (error) {
     next(error);

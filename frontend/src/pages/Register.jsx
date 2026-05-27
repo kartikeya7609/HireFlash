@@ -135,10 +135,12 @@ const Register = () => {
       EMAILJS_SERVICE_ID,
       EMAILJS_TEMPLATE_ID,
       {
-        to_email: toEmail,
-        to_name: toName,
-        otp_code: otp,
-        app_name: 'FasHire',
+        to_email: toEmail,   // → Template "To Email" field: {{to_email}}
+        to_name: toName,     // → Template greeting: {{to_name}}
+        name: toName,        // → Template "From Name" / {{name}} fallback
+        email: toEmail,      // → Template "Reply To" field: {{email}}
+        otp_code: otp,       // → OTP display block: {{otp_code}}
+        app_name: 'HireFlash',
         expiry_minutes: '10',
       },
       EMAILJS_PUBLIC_KEY

@@ -73,17 +73,17 @@ const Home = () => {
             Deploy validated on-demand master technicians, carpenters, tutors, and cleaners in real time with transparent pricing.
           </p>
 
-          <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto flex gap-2">
+          <form onSubmit={handleSearchSubmit} className="max-w-xl mx-auto flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               placeholder="Search by specialty, location, or name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-grow px-5 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="flex-grow w-full px-5 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl hover:bg-amber-600 dark:hover:bg-amber-400 dark:hover:text-slate-950 transition-all shadow-sm"
+              className="w-full sm:w-auto px-6 py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-bold rounded-xl hover:bg-amber-600 dark:hover:bg-amber-400 dark:hover:text-slate-950 transition-all shadow-sm whitespace-nowrap"
             >
               Search
             </button>
