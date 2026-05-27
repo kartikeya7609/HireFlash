@@ -19,13 +19,32 @@ app.use(express.json());
 // Cookie parser
 app.use(cookieParser());
 
-// Enable CORS
+// Enable CORS — supports comma-separated list of allowed origins in FRONTEND_URL
+// e.g. FRONTEND_URL=https://hireflash.vercel.app,http://localhost:5173
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+    : [])
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: Origin ${origin} is not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   })
 );
+
+// Handle preflight OPTIONS requests for all routes
+app.options('*', cors());
 
 // Serve local uploads folder statically
 app.use('/uploads', express.static('uploads'));
