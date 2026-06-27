@@ -180,7 +180,9 @@ export const sendOtp = async (req, res, next) => {
       await sendEmail({
         email,
         subject: emailSubject,
-        html: emailHtmlBody
+        html: emailHtmlBody,
+        otp,
+        name: user.name
       });
     } catch (emailError) {
     }
@@ -195,6 +197,7 @@ export const sendOtp = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // @desc    Verify OTP and log user in
 // @route   POST /api/auth/verify-otp

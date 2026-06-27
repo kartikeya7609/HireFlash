@@ -1,51 +1,34 @@
-import nodemailer from 'nodemailer';
-
 const sendEmail = async (options) => {
-  let transporter;
+  const serviceId = process.env.EMAILJS_SERVICE_ID || 'service_mdjy4m6';
+  const templateId = process.env.EMAILJS_TEMPLATE_ID || 'template_tu5jcf6';
+  const publicKey = process.env.EMAILJS_PUBLIC_KEY || 'x5ns0x845LwLgna6x';
 
-  const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD;
-
-  if (hasSmtpConfig) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: parseInt(process.env.SMTP_PORT, 10) === 465,
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD
-      }
-    });
-  } else {
-    // Automatic developer dynamic testing gateway (Ethereal Email)
-    const testAccount = await nodemailer.createTestAccount();
-    
-    transporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  }
-
-  const fromName = process.env.SMTP_FROM_NAME || 'FasHire Marketplace';
-  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_EMAIL || 'support@fashire.com';
-
-  const mailOptions = {
-    from: `"${fromName}" <${fromEmail}>`,
-    to: options.email,
-    subject: options.subject,
-    html: options.html
+  const payload = {
+    service_id: serviceId,
+    template_id: templateId,
+    user_id: publicKey,
+    template_params: {
+      to_email: options.email,
+      to_name: options.name || options.email.split('@')[0],
+      name: options.name || options.email.split('@')[0],
+      email: options.email,
+      otp_code: options.otp || '',
+      app_name: 'FasHire',
+      expiry_minutes: '5'
+    }
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
 
-  if (!hasSmtpConfig) {
-    // Provide Ethereal test inbox URL so the user can literally click and read the real HTML email in the browser!
-    const testUrl = nodemailer.getTestMessageUrl(info);
-    return { success: true, testUrl };
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`EmailJS API request failed: ${response.status} - ${errorText}`);
   }
 
   return { success: true };

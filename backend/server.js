@@ -83,7 +83,7 @@ app.post('/api/seed', async (req, res, next) => {
 
     // Create 1 admin, 2 customers, and 5 workers (one for each category)
     const admin = await User.create({
-      name: 'System Admin',
+      name: 'admin',
       email: 'admin@fasthire.com',
       password: 'password123',
       role: 'admin',

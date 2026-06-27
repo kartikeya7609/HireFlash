@@ -4,20 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import {
   Users,
-  Briefcase,
   Calendar,
   DollarSign,
-  Shield,
   ShieldAlert,
   ShieldCheck,
-  CheckCircle,
-  XCircle,
   Activity,
   Search,
   Sparkles,
   TrendingUp,
-  Sliders,
   Layers,
+  Globe,
+  Eye,
+  UserCheck,
+  BarChart2,
   ArrowUpRight
 } from 'lucide-react';
 import api from '../api/axios';
@@ -112,8 +111,11 @@ const AdminDashboard = () => {
     profiles: { total: 0, verified: 0 },
     bookings: { total: 0, pending: 0, accepted: 0, completed: 0, cancelled: 0 },
     financials: { grossVolume: 0 },
-    categoryDistribution: []
+    categoryDistribution: [],
+    visits: { total: 0, unique: 0, today: 0, daily: [], topPages: [] }
   };
+  const visits = stats.visits || { total: 0, unique: 0, today: 0, daily: [], topPages: [] };
+  const maxDayVisits = Math.max(...(visits.daily.map(d => d.visits)), 1);
 
   const users = usersData || [];
   const bookings = bookingsData || [];
@@ -210,7 +212,7 @@ const AdminDashboard = () => {
                   {[
                     { label: 'Market Capital', val: `$${stats.financials.grossVolume}`, icon: <DollarSign size={15} />, tint: 'text-emerald-600 bg-emerald-500/10' },
                     { label: 'Active Users', val: stats.users.total, icon: <Users size={15} />, tint: 'text-indigo-600 bg-indigo-500/10' },
-                    { label: 'Total Schedule Tickets', val: stats.bookings.total, icon: <Calendar size={15} />, tint: 'text-amber-600 bg-amber-500/10' },
+                    { label: 'Total Bookings', val: stats.bookings.total, icon: <Calendar size={15} />, tint: 'text-amber-600 bg-amber-500/10' },
                     { label: 'Verification Rate', val: `${stats.profiles.total ? Math.round((stats.profiles.verified / stats.profiles.total) * 100) : 0}%`, icon: <ShieldCheck size={15} />, tint: 'text-slate-900 dark:text-white bg-slate-950/5 dark:bg-white/5' }
                   ].map((stat, sIdx) => (
                     <div key={sIdx} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl flex items-center gap-3 shadow-sm">
@@ -223,6 +225,69 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* WEBSITE VISITS PANEL */}
+                <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 text-violet-500 text-[9px] font-black uppercase tracking-widest rounded-full mb-1.5">
+                        <Globe size={10} /> Live Traffic
+                      </span>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">Website Visits</h4>
+                    </div>
+                    <BarChart2 size={16} className="text-slate-400" />
+                  </div>
+                  {/* Visit KPI Row */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Total Visits', val: visits.total, icon: <Eye size={13} />, color: 'text-violet-600 bg-violet-500/10' },
+                      { label: 'Unique Visitors', val: visits.unique, icon: <UserCheck size={13} />, color: 'text-sky-600 bg-sky-500/10' },
+                      { label: 'Today', val: visits.today, icon: <Activity size={13} />, color: 'text-emerald-600 bg-emerald-500/10' }
+                    ].map((v, i) => (
+                      <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${v.color}`}>{v.icon}</div>
+                        <div>
+                          <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{v.label}</span>
+                          <span className="text-base font-black text-slate-900 dark:text-white">{v.val}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* 7-Day Bar Chart */}
+                  <div>
+                    <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Last 7 Days</span>
+                    <div className="flex items-end gap-1.5 h-24 mt-3">
+                      {visits.daily.length > 0 ? visits.daily.map((day, i) => {
+                        const pct = Math.round((day.visits / maxDayVisits) * 100);
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                              {day.visits} visits
+                            </div>
+                            <div className="w-full rounded-t-md bg-gradient-to-t from-violet-600 to-violet-400 transition-all duration-500" style={{ height: `${Math.max(pct, 4)}%` }} />
+                            <span className="text-[8px] text-slate-400 font-bold">{day.date}</span>
+                          </div>
+                        );
+                      }) : (
+                        <div className="w-full flex items-center justify-center text-xs text-slate-400">No visit data yet — visits will appear as users browse.</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Top Pages */}
+                  {visits.topPages.length > 0 && (
+                    <div>
+                      <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Top Pages</span>
+                      <div className="mt-2 space-y-1.5">
+                        {visits.topPages.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="font-mono text-slate-600 dark:text-slate-400 truncate max-w-[70%]">{p._id}</span>
+                            <span className="font-black text-violet-600">{p.visits} <span className="text-slate-400 font-normal">visits</span></span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* VISUAL CHARTS PLATE */}

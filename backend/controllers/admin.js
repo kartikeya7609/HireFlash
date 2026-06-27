@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import WorkerProfile from '../models/WorkerProfile.js';
 import Booking from '../models/Booking.js';
+import PageVisit from '../models/PageVisit.js';
 
 // @desc    Get all users in the system
 // @route   GET /api/admin/users
@@ -88,6 +89,29 @@ export const getBookings = async (req, res, next) => {
   }
 };
 
+// @desc    Track a page visit (public endpoint)
+// @route   POST /api/admin/track
+// @access  Public
+export const trackVisit = async (req, res, next) => {
+  try {
+    const { path, userId, referrer } = req.body;
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || '';
+
+    await PageVisit.create({
+      path: path || '/',
+      ip,
+      userAgent,
+      userId: userId || null,
+      referrer: referrer || ''
+    });
+
+    res.status(201).json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get comprehensive marketplace dashboard analytics
 // @route   GET /api/admin/stats
 // @access  Private (Admin only)
@@ -130,6 +154,57 @@ export const getStats = async (req, res, next) => {
       })
     );
 
+    // 6. Website Visit Analytics
+    const totalVisits = await PageVisit.countDocuments();
+    const uniqueIPs = await PageVisit.distinct('ip');
+    const uniqueVisitors = uniqueIPs.length;
+
+    // Visits over last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const visitsByDay = await PageVisit.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
+
+    // Format days for the last 7 days (fill zeros for missing days)
+    const dailyVisits = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayKey = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      const found = visitsByDay.find(
+        (v) => `${v._id.year}-${v._id.month}-${v._id.day}` === dayKey
+      );
+      dailyVisits.push({
+        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        visits: found ? found.count : 0
+      });
+    }
+
+    // Top pages by visit count
+    const topPages = await PageVisit.aggregate([
+      { $group: { _id: '$path', visits: { $sum: 1 } } },
+      { $sort: { visits: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // Visits today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const visitsToday = await PageVisit.countDocuments({ createdAt: { $gte: todayStart } });
+
     res.status(200).json({
       success: true,
       data: {
@@ -154,7 +229,14 @@ export const getStats = async (req, res, next) => {
         financials: {
           grossVolume: grossValue
         },
-        categoryDistribution
+        categoryDistribution,
+        visits: {
+          total: totalVisits,
+          unique: uniqueVisitors,
+          today: visitsToday,
+          daily: dailyVisits,
+          topPages
+        }
       }
     });
   } catch (error) {
